@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: PowerUpShortSpeed
   m_EditorClassIdentifier: Assembly-CSharp::PowerUpScriptableObject
   powerUpType: Speed
-  powerUpValue: 10
-  timeLimit: 1
+  powerUpValue: 1
+  timeLimit: 10

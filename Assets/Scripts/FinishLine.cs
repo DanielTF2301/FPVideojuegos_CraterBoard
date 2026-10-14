@@ -11,29 +11,43 @@ public class FinishLine : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             Debug.Log("Player has crossed the finish line!");
-            finishEffect.Play(); // Play the finish effect particles            
+            if (finishEffect != null) finishEffect.Play(); // Play the finish effect particles            
             
             Invoke(nameof(NextLevel), reloadDelay); // Reload the scene after the specified delay
-
         }
     }
 
     void NextLevel()
     {
-        int unlockedLevel = PlayerPrefs.GetInt("UnlockedLevel", 1);
+        // 1. Averiguar en qué nivel estamos basándonos en el nombre de la escena actual (ej. "Level1", "Level2")
+        string currentSceneName = SceneManager.GetActiveScene().name;
         
-        PlayerPrefs.SetInt("UnlockedLevel", unlockedLevel + 1); // Unlock the next level
-        PlayerPrefs.Save();
-        // Reload the current scene
-        if (unlockedLevel > 4) // If the player has completed the last level, go back to the main menu
+        if (currentSceneName.StartsWith("Level") && int.TryParse(currentSceneName.Replace("Level", ""), out int currentLevelNumber))
         {
-            SceneManager.LoadScene("Menu"); //TODO: Go to Win Scene
+            int nextLevelNumber = currentLevelNumber + 1;
+            
+            // 2. Actualizar el progreso desbloqueado solo si superamos nuestro récord
+            int unlockedLevel = PlayerPrefs.GetInt("UnlockedLevel", 1);
+            if (currentLevelNumber >= unlockedLevel)
+            {
+                PlayerPrefs.SetInt("UnlockedLevel", nextLevelNumber);
+                PlayerPrefs.Save();
+            }
+            
+            // 3. Cargar el siguiente nivel de forma segura (asumiendo un total de 4 niveles)
+            if (nextLevelNumber > 4) 
+            {
+                SceneManager.LoadScene("Menu"); // TODO: Go to Win Scene
+            }
+            else
+            {
+                SceneManager.LoadScene($"Level{nextLevelNumber}"); // Carga exactamente el siguiente nivel correlativo
+            }
         }
         else
         {
-            SceneManager.LoadScene($"Level{unlockedLevel + 1}"); // Load the next level
+            // Fallback de seguridad por si acaso
+            SceneManager.LoadScene("Menu");
         }
-        
     }
-
 }

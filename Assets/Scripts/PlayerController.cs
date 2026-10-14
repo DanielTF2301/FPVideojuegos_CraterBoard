@@ -8,76 +8,109 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float bootsSpeed = 35f;
     [SerializeField] private ParticleSystem snowEffect;
     [SerializeField] private ScoreManager scoreManager;
+    [SerializeField] private float maxAngularVelocity = 500f;
     
     SurfaceEffector2D surfaceEffector2D;
     Rigidbody2D rb;
 
     float baseSpeed;    
+    float baseGravityScale; 
     InputAction moveAction;
     Vector2 moveInput;
-    float previousRotation; // Store the previous rotation of the player
-    float totalRotation; // Store the total rotation of the player
-    int flipCount; // Store the number of flips performed by the player
+    float previousRotation; 
+    float totalRotation; 
+    int flipCount; 
 
-    int activePowerUpsCount; // Track the number of active power-ups
-
+    int activePowerUpsCount; 
     
-    private bool canControlPlayer = true; // Flag to control player input
+    // Variables de power-ups y puntuación acumulada real
+    bool isScoreMultiplierActive = false;
+    float currentScoreMultiplier = 1f;
+    bool isShieldActive = false;
+    public bool IsShieldActive { get => isShieldActive; }
 
+    int totalScore = 0; // Acumulador fijo para que la puntuación nunca baje
+
+    private bool canControlPlayer = true; 
     public bool CanControlPlayer { get => canControlPlayer; set => canControlPlayer = value; }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        // Activate the selected character model 
-        transform.GetChild(0).GetChild(PlayerPrefs.GetInt("SelectedCharacter", 0)).gameObject.SetActive(true); 
+        Transform characterContainer = transform.GetChild(0);
+        int selectedCharacter = PlayerPrefs.GetInt("SelectedCharacter", 0);
+        
+        foreach (Transform child in characterContainer)
+        {
+            child.gameObject.SetActive(false);
+        }
+
+        if (selectedCharacter < characterContainer.childCount)
+        {
+            characterContainer.GetChild(selectedCharacter).gameObject.SetActive(true);
+        }
+        else if (characterContainer.childCount > 0)
+        {
+            characterContainer.GetChild(0).gameObject.SetActive(true);
+        }
 
         moveAction = InputSystem.actions.FindAction("Move");
         rb = GetComponent<Rigidbody2D>();
+        
+        baseGravityScale = rb.gravityScale; 
+
         surfaceEffector2D = FindAnyObjectByType<SurfaceEffector2D>();
-        baseSpeed = surfaceEffector2D.speed; // Store the initial speed of the SurfaceEffector2D
-    }
-    
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (!canControlPlayer) return; // If player input is disabled, exit the method
-        
-        PlayerTorque();     
-        BoostPlayer();
-        CalculateFlips();        
-        
-    }
-
-    /// <summary>
-    /// Calculates the number of flips the player has performed based on their rotation 
-    /// </summary>
-    private void CalculateFlips()
-    {
-        // Get the current rotation of the player in degrees
-        float currentRotation = transform.rotation.eulerAngles.z; 
-        // Calculate the change in rotation since the last frame
-        totalRotation += Mathf.DeltaAngle(previousRotation, currentRotation); 
-        
-        if (Math.Abs(totalRotation)> 340)
+        if (surfaceEffector2D != null)
         {
-            flipCount++; // Increment the flip count if the total rotation exceeds 360 degrees
-            
-            scoreManager.AddScore(flipCount*100); 
-
-            totalRotation = 0; // Reset the total rotation for the next flip            
+            baseSpeed = surfaceEffector2D.speed;
         }
 
-        previousRotation = currentRotation; // Update the previous rotation for the next frame
-        
+        previousRotation = transform.rotation.eulerAngles.z;
     }
 
-    /// <summary>
-    /// Applies torque to the player based on the horizontal input from the Move action.
-    /// </summary>
+    void Update()
+    {
+        if (!canControlPlayer) return;
+        
+        PlayerTorque();    
+        BoostPlayer();
+        CalculateFlips();        
+    }
+
+    private void CalculateFlips()
+    {
+        float currentRotation = transform.rotation.eulerAngles.z; 
+        totalRotation += Mathf.DeltaAngle(previousRotation, currentRotation); 
+        
+        if (Math.Abs(totalRotation) > 340)
+        {
+            flipCount++; 
+            if (scoreManager != null)
+            {
+                // Puntos base por cada voltereta completada
+                int baseFlipPoints = 100;
+                
+                // Si el multiplicador está activo, duplicamos los puntos de esta voltereta
+                if (isScoreMultiplierActive)
+                {
+                    baseFlipPoints = Mathf.RoundToInt(baseFlipPoints * currentScoreMultiplier); 
+                }
+
+                // Acumulamos de forma segura sumando a lo que ya teníamos
+                totalScore += baseFlipPoints;
+
+                // Enviamos la puntuación total acumulada al ScoreManager
+                scoreManager.AddScore(totalScore); 
+            }
+            totalRotation = 0;            
+        }
+
+        previousRotation = currentRotation; 
+    }
+
     void PlayerTorque()
     {
+        if (rb == null) return; 
+        
         moveInput = moveAction.ReadValue<Vector2>(); 
         if (moveInput.x < 0)
         {
@@ -87,63 +120,87 @@ public class PlayerController : MonoBehaviour
         {
             rb.AddTorque(-torqueAmount);
         }
-        
+
+        rb.angularVelocity = Mathf.Clamp(rb.angularVelocity, -maxAngularVelocity, maxAngularVelocity);
     }
 
     void BoostPlayer()
     {
-        //Increase the player's speed when the up arrow key is pressed
-        //Surface Efector speed is increased to bootsSpeed
+        if (surfaceEffector2D == null) return;
+
         if (moveInput.y > 0)
-        {     
+        {    
             surfaceEffector2D.speed = bootsSpeed; 
         }
         else
-        {         
-            surfaceEffector2D.speed = baseSpeed; // Return to normal speed
+        {        
+            surfaceEffector2D.speed = baseSpeed; 
         }
     }
 
-    // Detects when the player collides with the floor and plays the snow effect
     void OnCollisionEnter2D(Collision2D collision)
     {
         int layerIndex = LayerMask.NameToLayer("Floor");
         if (collision.gameObject.layer == layerIndex)
         {            
-            snowEffect.Play();            
+            if (snowEffect != null) snowEffect.Play();            
         }
     }
 
-    // Detects when the player exits the collision with the floor and stops the snow effect
     void OnCollisionExit2D(Collision2D collision)
     {
         int layerIndex = LayerMask.NameToLayer("Floor");
         if (collision.gameObject.layer == layerIndex)
         {            
-            snowEffect.Stop();
+            if (snowEffect != null) snowEffect.Stop();
         }
     }
 
     public void ApplyPowerUp(PowerUpScriptableObject powerUpData)
     {
-        activePowerUpsCount++; // Increment the count of active power-ups
+        activePowerUpsCount++;
+
         if (powerUpData.PowerUpType == "Speed")
         {
-            baseSpeed += powerUpData.PowerUpValue; // Increase the base speed by the power-up value
-            bootsSpeed += powerUpData.PowerUpValue; // Increase the boots speed by the power-up value
+            baseSpeed += powerUpData.PowerUpValue;
+            bootsSpeed += powerUpData.PowerUpValue;
+        }
+        else if (powerUpData.PowerUpType == "Gravity")
+        {
+            rb.gravityScale -= powerUpData.PowerUpValue; 
+        }
+        else if (powerUpData.PowerUpType == "ScoreMultiplier")
+        {
+            isScoreMultiplierActive = true;
+            currentScoreMultiplier = powerUpData.PowerUpValue; 
+        }
+        else if (powerUpData.PowerUpType == "Shield")
+        {
+            isShieldActive = true;
         }
     }
 
     public void DeactivatePowerUp(PowerUpScriptableObject powerUpData)
     {
-        activePowerUpsCount--; // Decrement the count of active power-ups
-        if (activePowerUpsCount == 0)
+        activePowerUpsCount--;
+
+        if (powerUpData.PowerUpType == "Speed")
         {
-            if (powerUpData.PowerUpType == "Speed")
-            {
-                baseSpeed -= powerUpData.PowerUpValue; // Decrease the base speed by the power-up value
-                bootsSpeed -= powerUpData.PowerUpValue; // Decrease the boots speed by the power-up value
-            }
+            baseSpeed -= powerUpData.PowerUpValue;
+            bootsSpeed -= powerUpData.PowerUpValue;
+        }
+        else if (powerUpData.PowerUpType == "Gravity")
+        {
+            rb.gravityScale = baseGravityScale; 
+        }
+        else if (powerUpData.PowerUpType == "ScoreMultiplier")
+        {
+            isScoreMultiplierActive = false;
+            currentScoreMultiplier = 1f; 
+        }
+        else if (powerUpData.PowerUpType == "Shield")
+        {
+            isShieldActive = false;
         }
     }
 }

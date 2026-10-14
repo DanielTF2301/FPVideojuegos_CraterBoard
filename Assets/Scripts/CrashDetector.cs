@@ -18,6 +18,12 @@ public class CrashDetector : MonoBehaviour
         int layerIndex = LayerMask.NameToLayer("Floor");
         if (other.gameObject.layer == layerIndex)
         {
+            // --- NUEVO: Si el escudo está activo, ignoramos el choque ---
+            if (playerController != null && playerController.IsShieldActive)
+            {
+                return; // Salimos del método y evitamos el choque/muerte
+            }
+
             playerController.CanControlPlayer = false; // Disable player input
             crashEffect.Play();
             Invoke(nameof(ReloadScene), crashDelay);
