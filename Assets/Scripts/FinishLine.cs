@@ -35,7 +35,7 @@ public class FinishLine : MonoBehaviour
             }
             
             // 3. Cargar el siguiente nivel de forma segura (asumiendo un total de 4 niveles)
-            if (nextLevelNumber > 4) 
+            if (nextLevelNumber > 3) 
             {
                 SceneManager.LoadScene("Menu"); // TODO: Go to Win Scene
             }
