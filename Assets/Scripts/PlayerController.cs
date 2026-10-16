@@ -8,7 +8,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float bootsSpeed = 35f;
     [SerializeField] private ParticleSystem snowEffect;
     [SerializeField] private ScoreManager scoreManager;
-    [SerializeField] private float maxAngularVelocity = 500f;
+    [SerializeField] private float maxAngularVelocity = 1000f;
     
     SurfaceEffector2D surfaceEffector2D;
     Rigidbody2D rb;

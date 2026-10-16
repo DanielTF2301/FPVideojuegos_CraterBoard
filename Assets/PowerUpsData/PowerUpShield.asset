@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05a16137c3d648d41acb4a0823e14613, type: 3}
   m_Name: PowerUpShield
   m_EditorClassIdentifier: Assembly-CSharp::PowerUpScriptableObject
-  powerUpType: shield
+  powerUpType: Shield
   powerUpValue: 10
-  timeLimit: 6
+  timeLimit: 10

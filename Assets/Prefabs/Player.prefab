@@ -4774,7 +4774,7 @@ Rigidbody2D:
   m_UseAutoMass: 0
   m_Mass: 1
   m_LinearDamping: 0
-  m_AngularDamping: 4
+  m_AngularDamping: 1
   m_GravityScale: 2.4
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -4836,7 +4836,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a569e0e70e2b6a40bd40818b5e3f073, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  torqueAmount: 30
+  torqueAmount: 50
   bootsSpeed: 35
   snowEffect: {fileID: 4880359454111723008}
   scoreManager: {fileID: 0}

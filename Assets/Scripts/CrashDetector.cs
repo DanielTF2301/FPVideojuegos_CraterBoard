@@ -3,14 +3,25 @@ using UnityEngine.SceneManagement;
 
 public class CrashDetector : MonoBehaviour
 {
-    [SerializeField] private float crashDelay = 1f; // Delay before reloading the scene
+    [SerializeField] private float crashDelay = 1f;
     [SerializeField] private ParticleSystem crashEffect;
 
-    PlayerController playerController;
+    private PlayerController playerController;
 
     void Start()
     {
-        playerController = FindAnyObjectByType<PlayerController>();
+        // Como el CrashDetector y el PlayerController están en el mismo objeto (Player), usamos GetComponent directamente
+        playerController = GetComponent<PlayerController>();
+        
+        if (playerController == null)
+        {
+            playerController = FindAnyObjectByType<PlayerController>();
+        }
+
+        if (playerController == null)
+        {
+            Debug.LogError("¡CrashDetector no encuentra ningún PlayerController en la escena!");
+        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -18,21 +29,35 @@ public class CrashDetector : MonoBehaviour
         int layerIndex = LayerMask.NameToLayer("Floor");
         if (other.gameObject.layer == layerIndex)
         {
-            // --- NUEVO: Si el escudo está activo, ignoramos el choque ---
-            if (playerController != null && playerController.IsShieldActive)
+            // Comprobamos el estado del escudo
+            if (playerController != null)
             {
-                return; // Salimos del método y evitamos el choque/muerte
+                Debug.Log("Estado actual del escudo: " + playerController.IsShieldActive);
+
+                if (playerController.IsShieldActive)
+                {
+                    Debug.Log("¡El escudo está activo! El choque ha sido bloqueado.");
+                    return; // Sale del método y evita la muerte
+                }
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController es null en el momento del impacto.");
             }
 
-            playerController.CanControlPlayer = false; // Disable player input
-            crashEffect.Play();
+            // Si no hay escudo activo, procede a reiniciar
+            if (playerController != null)
+            {
+                playerController.CanControlPlayer = false;
+            }
+
+            if (crashEffect != null) crashEffect.Play();
             Invoke(nameof(ReloadScene), crashDelay);
         }
     }
 
     void ReloadScene()
     {
-        // Reload the current scene
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
